@@ -81,14 +81,77 @@ router.get('/github/callback', async (req, res) => {
     const jwtToken = jwt.sign(
       { id: user.id },
       process.env.JWT_SECRET,
+      { expiresIn: '15m' }
+    );
+
+    const refreshToken = jwt.sign(
+      { id: user.id },
+      process.env.JWT_SECRET,
       { expiresIn: '7d' }
     );
 
-    // Redirect to frontend with token
-    res.redirect(`http://localhost:3000/auth/success?token=${jwtToken}`);
+    // Save this refreshToken to the database for this user
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { refreshToken }
+    });
+
+    // Set cookies and redirect to dashboard
+    res.cookie('accessToken', jwtToken, {
+      httpOnly: true,
+      secure: false,
+      sameSite: 'lax',
+      maxAge: 15 * 60 * 1000
+    });
+
+    res.cookie('refreshToken', refreshToken, {
+      httpOnly: true,
+      secure: false,
+      sameSite: 'lax',
+      maxAge: 7 * 24 * 60 * 60 * 1000
+    });
+
+    res.redirect('http://localhost:3000/dashboard');
   } catch (error) {
     console.error('Error during GitHub authentication callback:', error?.response?.data || error.message);
     res.status(500).json({ error: 'Failed to complete GitHub authentication.' });
+  }
+});
+
+// Refresh Access Token route
+router.post('/refresh', async (req, res) => {
+  const refreshToken = req.cookies?.refreshToken;
+  if (!refreshToken) {
+    return res.status(401).json({ error: 'Access denied. No refresh token provided.' });
+  }
+
+  try {
+    const decoded = jwt.verify(refreshToken, process.env.JWT_SECRET);
+    const user = await prisma.user.findUnique({
+      where: { id: decoded.id }
+    });
+
+    if (!user || user.refreshToken !== refreshToken) {
+      return res.status(401).json({ error: 'Invalid or revoked refresh token.' });
+    }
+
+    const newAccessToken = jwt.sign(
+      { id: user.id },
+      process.env.JWT_SECRET,
+      { expiresIn: '15m' }
+    );
+
+    res.cookie('accessToken', newAccessToken, {
+      httpOnly: true,
+      secure: false,
+      sameSite: 'lax',
+      maxAge: 15 * 60 * 1000
+    });
+
+    return res.json({ success: true });
+  } catch (error) {
+    console.error('Error in refresh token route:', error.message);
+    return res.status(401).json({ error: 'Invalid or expired refresh token.' });
   }
 });
 
