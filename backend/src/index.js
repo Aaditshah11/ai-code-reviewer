@@ -4,6 +4,7 @@ import dotenv from "dotenv";
 import cookieParser from "cookie-parser";
 import userRouter from "./routes/user.js";
 import authRouter from "./routes/auth.js";
+import repositoriesRouter from "./routes/repositories.js";
 
 dotenv.config();
 
@@ -27,6 +28,7 @@ app.get("/health", (req, res) => {
 // Routes
 app.use("/auth", authRouter);
 app.use("/api/user", userRouter);
+app.use("/api/repositories", repositoriesRouter);
 
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
