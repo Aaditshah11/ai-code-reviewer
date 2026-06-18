@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import Image from "next/image";
+import { ConnectButton } from "@/app/components/ConnectButton";
 
 interface Repository {
   githubId: number;
@@ -176,6 +177,10 @@ export default async function Dashboard() {
                           Updated:{" "}
                           {new Date(repo.updatedAt).toLocaleDateString()}
                         </span>
+                      </div>
+
+                      <div className="pt-2">
+                        <ConnectButton repo={repo} />
                       </div>
                     </CardContent>
                   </Card>
