@@ -6,6 +6,7 @@ import userRouter from "./routes/user.js";
 import authRouter from "./routes/auth.js";
 import repositoriesRouter from "./routes/repositories.js";
 import connectRouter from "./routes/connect.js";
+import webhookRouter from "./routes/webhook.js";
 
 dotenv.config();
 
@@ -18,6 +19,7 @@ app.use(
     credentials: true,
   }),
 );
+app.use("/webhooks/github", express.raw({ type: "application/json" }));
 app.use(express.json());
 app.use(cookieParser());
 
@@ -31,6 +33,7 @@ app.use("/auth", authRouter);
 app.use("/api/user", userRouter);
 app.use("/api/repositories", repositoriesRouter);
 app.use("/api/repositories", connectRouter);
+app.use("/webhooks", webhookRouter);
 
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
