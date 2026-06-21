@@ -7,6 +7,7 @@ import authRouter from "./routes/auth.js";
 import repositoriesRouter from "./routes/repositories.js";
 import connectRouter from "./routes/connect.js";
 import webhookRouter from "./routes/webhook.js";
+import reviewWorker from "./workers/reviewWorker.js";
 
 dotenv.config();
 
