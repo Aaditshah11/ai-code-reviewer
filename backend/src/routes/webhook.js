@@ -1,6 +1,7 @@
 import { Router } from "express";
 import crypto from "crypto";
 import { reviewQueue } from "../lib/queue.js";
+import prisma from "../lib/prisma.js";
 
 const router = Router();
 
@@ -12,8 +13,12 @@ router.post("/github", async (req, res) => {
     }
 
     if (!process.env.WEBHOOK_SECRET) {
-      console.error("WEBHOOK_SECRET is not configured in environmental variables.");
-      return res.status(500).json({ error: "Webhook secret configuration error" });
+      console.error(
+        "WEBHOOK_SECRET is not configured in environmental variables.",
+      );
+      return res
+        .status(500)
+        .json({ error: "Webhook secret configuration error" });
     }
 
     const expectedSig =
@@ -56,16 +61,27 @@ router.post("/github", async (req, res) => {
       author: payload.pull_request?.user?.login,
     });
 
+    const repository = await prisma.repository.findFirst({
+      where: { githubId: Number(payload.repository.id) },
+      include: { user: { select: { id: true, accessToken: true } } },
+    });
+
+    if (!repository || !repository.user) {
+      console.log("Repository not found or no user");
+      return res.status(200).json({ message: "Repository not connected" });
+    }
+
     await reviewQueue.add("review-pr", {
       prNumber: payload.pull_request.number,
       prTitle: payload.pull_request.title,
       prDiff: payload.pull_request.diff_url,
       repoFullName: payload.repository.full_name,
       repoId: payload.repository.id,
-      author: payload.pull_request.user.login
+      author: payload.pull_request.user.login,
+      githubToken: repository.user.accessToken,
     });
 
-    console.log('Review job queued for PR:', payload.pull_request.number);
+    console.log("Review job queued for PR:", payload.pull_request.number);
 
     return res.status(200).json({ message: "Webhook received" });
   } catch (error) {
