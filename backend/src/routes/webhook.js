@@ -79,6 +79,8 @@ router.post("/github", async (req, res) => {
       repoId: payload.repository.id,
       author: payload.pull_request.user.login,
       githubToken: repository.user.accessToken,
+      userId: repository.user.id,
+      repositoryId: repository.id,
     });
 
     console.log("Review job queued for PR:", payload.pull_request.number);
